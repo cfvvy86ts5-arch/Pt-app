@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  password      String
+  age           Int?
+  gender        String?
+  height        Float?   // in cm
+  weight        Float?   // in kg
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  moodEntries   MoodEntry[]
+  nutritionLogs NutritionLog[]
+  hydrationLogs HydrationLog[]
+  workouts      Workout[]
+  goals         Goal[]
+  buddyRequest  BuddyRequest[]
+  chatMessages  ChatMessage[]
+  
+  @@map("users")
+}
+
+// Mood tracking
+model MoodEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mood      Int      @db.SmallInt // 1-5 scale
+  energy    Int?     @db.SmallInt
+  stress    Int?     @db.SmallInt
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@map("mood_entries")
+}
+
+// Nutrition tracking
+model NutritionLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodName    String
+  calories    Float
+  protein     Float?   // in grams
+  carbs       Float?   // in grams
+  fat         Float?   // in grams
+  fiber       Float?   // in grams
+  sugar       Float?   // in grams
+  sodium      Float?   // in mg
+  iron        Float?   // in mg
+  calcium     Float?   // in mg
+  vitamin_c   Float?   // in mg
+  vitamin_d   Float?   // in IU
+  quantity    Float?
+  unit        String?  // e.g., "g", "ml", "piece"
+  mealType    String   // breakfast, lunch, dinner, snack
+  createdAt   DateTime @default(now())
+
+  @@map("nutrition_logs")
+}
+
+// Hydration tracking
+model HydrationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float    // in ml
+  type      String?  // water, coffee, tea, juice, etc.
+  createdAt DateTime @default(now())
+
+  @@map("hydration_logs")
+}
+
+// Workout tracking
+model Workout {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  duration        Int      // in minutes
+  caloriesBurned  Float?
+  muscleGroups    String[] // e.g., ["chest", "shoulders"]
+  exercises       Exercise[]
+  createdAt       DateTime @default(now())
+
+  @@map("workouts")
+}
+
+// Individual exercises within a workout
+model Exercise {
+  id          String   @id @default(cuid())
+  workoutId   String
+  workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name        String
+  sets        Int?
+  reps        Int?
+  weight      Float?   // in kg
+  duration    Int?     // in seconds
+  notes       String?
+  correction  String?  // AI feedback on form
+  videoUrl    String?  // Recording of exercise
+
+  @@map("exercises")
+}
+
+// Goals
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  category    String   // nutrition, fitness, mental_health, hydration
+  targetValue Float?
+  currentValue Float   @default(0)
+  unit        String?  // e.g., "kg", "steps", "water_liters"
+  deadline    DateTime?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("goals")
+}
+
+// Buddy system for workouts/goals
+model BuddyRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buddyId   String
+  type      String   // "workout_buddy" or "goal_buddy"
+  status    String   @default("pending") // pending, accepted, rejected
+  createdAt DateTime @default(now())
+
+  @@map("buddy_requests")
+}
+
+// Chat messages for chatbots and buddies
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botType   String   // "mental_health", "healthcare", "goal_buddy", "workout_buddy"
+  message   String
+  response  String?
+  createdAt DateTime @default(now())
+
+  @@map("chat_messages")
+}
+
+// Health risk assessment
+model HealthRisk {
+  id           String   @id @default(cuid())
+  userId       String
+  riskType     String   // "nutritional_deficiency", "cardiovascular", "diabetes", etc.
+  severity     String   // "low", "medium", "high"
+  description  String
+  recommendation String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("health_risks")
+}
+
+// Nutrition plan template
+model NutritionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  meals       String[] // JSON array of meals
+  duration    Int      // in days
+
+  @@map("nutrition_plans")
+}
+
+// Workout plan template
+model WorkoutPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  difficulty  String   // "beginner", "intermediate", "advanced"
+  duration    Int      // in weeks
+  workouts    String[] // JSON array of workouts
+  
+  @@map("workout_plans")
+}
